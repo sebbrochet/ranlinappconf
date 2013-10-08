@@ -17,9 +17,9 @@ setup(name='ranlinappconf',
       url='https://code.google.com/p/ranlinappconf/',
       platforms=['linux'],
       license='MIT License',
-      install_requires=['paramiko'],      
+      install_requires=['paramiko, yaml'],
       scripts=[
-         'bin/ranlinappconf'         
+         'bin/ranlinappconf'
       ],
       classifiers=[
           'Development Status :: 4 - Beta',
