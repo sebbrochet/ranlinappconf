@@ -493,6 +493,8 @@ def appconf_multi(application_pattern):
 
         app_file_list_unique = list(set(app_file_list))
 
+        app_file_list_unique.sort()
+
         manage_vcs_and_notification(app_name, app_file_list_unique, root_cwd)
 
 DEFAULT_CONFIGURATION = \
