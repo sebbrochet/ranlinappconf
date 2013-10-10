@@ -164,11 +164,6 @@ def manage_cvs_and_notification(app_name, file_short_list):
             subprocess.call(["cvs", "commit", "-m", "Update", "%s" % short_filename])
 
     if change_lines_list:
-        EMAIL_FROM = conf_get_IFP(config, "GENERAL", "EMAIL_FROM", "")
-        EMAIL_TO = conf_get_IFP(config, "GENERAL", "EMAIL_TO", "")
-
-        if not '@' in EMAIL_FROM or not '@' in EMAIL_TO:
-            return
 
         index = 1
         body_lines = []
@@ -183,6 +178,12 @@ def manage_cvs_and_notification(app_name, file_short_list):
         body = '\n'.join(body_lines)
 
         create_change(app_name, body)
+
+        EMAIL_FROM = conf_get_IFP(config, "GENERAL", "EMAIL_FROM", "")
+        EMAIL_TO = conf_get_IFP(config, "GENERAL", "EMAIL_TO", "")
+
+        if not '@' in EMAIL_FROM or not '@' in EMAIL_TO:
+            return
 
         for email_to in EMAIL_TO.split(";"):
             send_mail(EMAIL_FROM, email_to.strip(), "%d changes detected for: %s" % (len(change_lines_list), app_name), body)
