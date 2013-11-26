@@ -147,7 +147,7 @@ def create_change(app_name, body):
     if modified:
         subprocess.call(["cvs", "commit", "-m", "Update", "%s" % local_change_filename])
 
-def manage_cvs_and_notification(app_name, file_short_list):
+def manage_cvs_and_notification(app_name, file_short_list, email_to):
     change_lines_list= []
 
     for short_filename in file_short_list:
@@ -180,15 +180,23 @@ def manage_cvs_and_notification(app_name, file_short_list):
         create_change(app_name, body)
 
         EMAIL_FROM = conf_get_IFP(config, "GENERAL", "EMAIL_FROM", "")
-        EMAIL_TO = conf_get_IFP(config, "GENERAL", "EMAIL_TO", "")
+
+        if email_to == '<INI>':
+           EMAIL_TO = conf_get_IFP(config, "GENERAL", "EMAIL_TO", "")
+        elif email_to.startswith('+'):
+           EMAIL_TO = conf_get_IFP(config, "GENERAL", "EMAIL_TO", "")
+           EMAIL_TO += ";%s" % email_to[1:]
+        else:
+           EMAIL_TO = email_to
 
         if not '@' in EMAIL_FROM or not '@' in EMAIL_TO:
             return
 
         for email_to in EMAIL_TO.split(";"):
+            print "Sending email to %s..." % email_to
             send_mail(EMAIL_FROM, email_to.strip(), "%d changes detected for: %s" % (len(change_lines_list), app_name), body)
 
-def manage_vcs_and_notification(app_name, file_list, root_cwd):
+def manage_vcs_and_notification(app_name, file_list, root_cwd, email_to):
     file_short_list = []
 
     start = len(root_cwd)+1
@@ -199,7 +207,7 @@ def manage_vcs_and_notification(app_name, file_list, root_cwd):
     VCS = conf_get_IFP(config, "GENERAL", "VCS", "CVS")
 
     if VCS == "CVS":
-        manage_cvs_and_notification(app_name, file_short_list)
+        manage_cvs_and_notification(app_name, file_short_list, email_to)
     elif VCS == "SVN":
         #manage_svn_and_notification(app_name, file_short_list)
         print "SVN is not suppported ATM, stay tuned!"
@@ -411,7 +419,7 @@ DEFAULT_PATTERN = {
     'file_type'     : True,
 }
 
-def appconf_multi(application_pattern):
+def appconf_multi(application_pattern, email_to):
     import os
 
     filename = conf_get_IFP(config, "GENERAL", "SERVER_LIST", "")
@@ -496,7 +504,7 @@ def appconf_multi(application_pattern):
 
         app_file_list_unique.sort()
 
-        manage_vcs_and_notification(app_name, app_file_list_unique, root_cwd)
+        manage_vcs_and_notification(app_name, app_file_list_unique, root_cwd, email_to)
 
 DEFAULT_CONFIGURATION = \
 """# This is the default configuration file
@@ -532,7 +540,7 @@ def create_default_configuration_file(filename):
     f.write(DEFAULT_CONFIGURATION)
     f.close()
 
-def run(config_file, application_pattern):
+def run(config_file, application_pattern, email_to):
     import os
 
     if not os.path.exists(config_file):
@@ -547,7 +555,7 @@ def run(config_file, application_pattern):
     import datetime
     start = datetime.datetime.now()
 
-    appconf_multi(application_pattern)
+    appconf_multi(application_pattern, email_to)
 
     end = datetime.datetime.now()
     duration = end - start
@@ -566,12 +574,14 @@ def main():
     parser.add_argument('action', type=str, help="Action to execute (GENCONFIG or RUN)")
     parser.add_argument('-c', '--config', type=str, help="Configuration file to use or create")
     parser.add_argument('-p', '--pattern', type=str, default='*', help="Pattern to RUN, i.e * for all (default) or regexp like ^.*\.(com|fr)$")
+    parser.add_argument('-t', '--email_to', type=str, default='<INI>', help="EMAIL_TO override")
     parser.add_argument('--v', action='version', help="Print program version and exit.", version='%(prog)s 0.1.0 (20131008)')
     args = parser.parse_args()
 
     action = args.action
     config_file = args.config
     application_pattern = args.pattern
+    email_to = args.email_to
 
     if not config_file:
         print "Error: configuration filename should be specified when action is RUN or GENCONFIG."
@@ -581,7 +591,7 @@ def main():
     action = action.upper()
 
     if action == "RUN":
-        run(config_file, application_pattern)
+        run(config_file, application_pattern, email_to)
     elif action == "GENCONFIG":
         genconfig(config_file)
     else:
